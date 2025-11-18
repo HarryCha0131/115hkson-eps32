@@ -1,0 +1,26 @@
+version = 1
+revision = 3
+requires-python = ">=3.12"
+
+[[package]]
+name = "code-final"
+version = "0.1.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "micropython-stdlib-stubs" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "micropython-stdlib-stubs", specifier = ">=1.26.0.post3" }]
+
+[[package]]
+name = "micropython-stdlib-stubs"
+version = "1.26.0.post3"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4f/2e/38a03713acf949c571e54de7c64fb48a519521c4ff0c1645d5213316637e/micropython_stdlib_stubs-1.26.0.post3-py3-none-any.whl", hash = "sha256:98a35a1faffeca605a0d38988dd0d98a117c32193db758436c87a08ca278339d", size = 147944, upload-time = "2025-09-01T21:07:57.11Z" },
+]

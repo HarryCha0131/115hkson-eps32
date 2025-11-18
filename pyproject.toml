@@ -1,0 +1,12 @@
+[project]
+name = "code-final"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "micropython-stdlib-stubs>=1.26.0.post3",
+]
