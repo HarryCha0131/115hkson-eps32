@@ -2,11 +2,7 @@
 設備控制器模組，負責協調各種感測器與執行器的操作。
 '''
 import time
-from config import (
-    TEMP_HIGH, HUMID_LOW,
-    TURBIDITY_MAX, TDS_MAX,
-    WATER_LEVEL_MIN, LOOP_INTERVAL
-)
+from config import *
 
 from sensors.dht11_sensor import DHT11Sensor
 from sensors.turbidity_sensor import TurbiditySensor
@@ -19,6 +15,7 @@ from actuators.relay import Relay
 
 from typing import Optional
 from lib.esplog.core import Logger
+
 import asyncio
 
 class FarmController:
@@ -75,7 +72,7 @@ class FarmController:
             self.logger.error("TDS 讀取失敗")
         return tds_value
     
-    def water_sensor_read(self) -> tuple[Optional[int], Optional[bool]]:
+    def _water_sensor_read(self) -> tuple[Optional[int], Optional[bool]]:
         '''讀取水位感測器數據'''
         water_raw = self.water_level_sensor.read_raw()
         water_low = self.water_level_sensor.is_low()
@@ -101,7 +98,7 @@ class FarmController:
         # TDS 讀取 TDS 值
         tds_value = self._tds_read(temp) if temp is not None else 25.0
         # 水位感測器讀取原始值與狀態
-        water_raw, water_low = self.water_sensor_read()
+        water_raw, water_low = self._water_sensor_read()
 
         # 根據數據進行控制邏輯
         # 異常狀況提示
@@ -165,3 +162,19 @@ class FarmController:
         del self.buzzer
         del self.relay_pump
         self.logger.info("FarmController 已釋放所有資源")
+
+if __name__ == "__main__":
+    async def main():
+        fc = FarmController(pins={
+            'dht11': DHT11_PIN,
+            'turbidity': TURBIDITY_PIN,
+            'tds': TDS_PIN,
+            'water_level': WATER_LEVEL_PIN,
+            'rgb_r': RGB_R_PIN,
+            'rgb_g': RGB_G_PIN,
+            'rgb_b': RGB_B_PIN,
+            'buzzer': BUZZER_PIN,
+            'relay_pump': RELAY_PUMP_PIN
+        })
+        await fc.run()
+    asyncio.run(main())
