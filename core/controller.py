@@ -45,8 +45,22 @@ class FarmController:
         self.rgb_led = RGBLed(pins=(pins['rgb_r'], pins['rgb_g'], pins['rgb_b']), common_anode=False)
         self.buzzer = Buzzer(pin_number=pins['buzzer'])
         self.relay_pump = Relay(pin_number=pins['relay_pump'], active_low=True)
+        
+        self.wifi = WiFiManager(
+            ssid=WIFI_SSID, 
+            password=WIFI_PASSWORD, 
+            logger=self.logger
+        )
+        self._wifi_task: Optional[asyncio.Task] = None
+        
         self.logger.debug("執行器初始化完成")
         self.logger.info("FarmController 初始化完成")
+    
+    async def init_network(self):
+        '''初始化網路連線'''
+        ok = await self.wifi.connect(timeout=15)
+        if not ok:
+            self.logger.warning("啟動時 WiFi 連線失敗，將持續背景重試")
     
     def _dht11_read(self) -> tuple[Optional[float], Optional[float]]:
         '''讀取 DHT11 感測器數據'''
@@ -146,25 +160,71 @@ class FarmController:
 
         await asyncio.sleep(LOOP_INTERVAL)
         
+    async def shutdown(self):
+        '''關閉控制器並釋放資源'''
+        self.logger.info("關閉 FarmController 中...")
+        try:
+            self.rgb_led.off()
+        except Exception as e:
+            self.logger.error(f"關閉 RGB LED 時發生錯誤: {e}")
+        
+        try:
+            self.buzzer.off()
+        except Exception as e:
+            self.logger.error(f"關閉 Buzzer 時發生錯誤: {e}")
+        
+        try:
+            self.relay_pump.off()
+        except Exception as e:
+            self.logger.error(f"關閉繼電器水泵時發生錯誤: {e}")
+            
+        try:
+            del self.dht11
+            del self.turbidity_sensor
+            del self.tds_sensor
+            del self.water_level_sensor
+            del self.rgb_led
+            del self.buzzer
+            del self.relay_pump
+        except Exception as e:
+            self.logger.error(f"釋放資源時發生錯誤: {e}")
+        
+        if self._wifi_task is not None:
+            self._wifi_task.cancel()
+            try:
+                await self._wifi_task
+            except asyncio.CancelledError:
+                self.logger.info("WiFi 連接保持任務已取消")
+        self.logger.info("FarmController 已關閉")
+        
     async def run(self):
-        '''持續運行控制器'''
+        '''持續運行控制器 + 網路初始化'''
         self.logger.info("FarmController 開始運行")
+        await self.init_network()
+        self._wifi_task = asyncio.create_task(self.wifi.keep_connected())  # 背景持續嘗試連線 WiFi
         try:
             while True:
                 await self._one_cycle()
         except KeyboardInterrupt:
             self.logger.info("接收到中斷信號，停止運行FarmController")
+        finally:
+            await self.shutdown()
     
     def __del__(self):
-        self.logger.info("FarmController 資源釋放中")
-        del self.dht11
-        del self.turbidity_sensor
-        del self.tds_sensor
-        del self.water_level_sensor
-        del self.rgb_led
-        del self.buzzer
-        del self.relay_pump
-        self.logger.info("FarmController 已釋放所有資源")
+        '''釋放資源'''
+        try:
+            del self.dht11
+            del self.turbidity_sensor
+            del self.tds_sensor
+            del self.water_level_sensor
+            del self.rgb_led
+            del self.buzzer
+            del self.relay_pump
+            if self._wifi_task is not None:
+                self._wifi_task.cancel()
+        except Exception as e:
+            self.logger.error(f"釋放資源時發生錯誤: {e}")
+        self.logger.info("FarmController 資源已釋放")
 
 if __name__ == "__main__":
     async def main():

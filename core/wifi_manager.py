@@ -73,10 +73,16 @@ class WiFiManager:
         Args:
             check_interval (int): 檢查間隔時間（秒），預設為 10 秒
         """
-        while True:
-            if not self.is_connected():
-                self.logger.warning("WiFi 連接中斷，嘗試重新連接...")
-                ok = await self.connect(timeout=timeout)
-                if not ok:
-                    self.logger.error("重新連接 WiFi 失敗")
-            await asyncio.sleep(check_interval)
+        try:
+            while True:
+                if not self.is_connected():
+                    self.logger.warning("WiFi 連接中斷，嘗試重新連接...")
+                    ok = await self.connect(timeout=timeout)
+                    if not ok:
+                        self.logger.error("重新連接 WiFi 失敗")
+                await asyncio.sleep(check_interval)
+        except asyncio.CancelledError:
+            self.logger.info("WiFi 連接保持任務已取消")
+        finally:
+            self.logger.info("WiFi 連接保持任務結束")
+            self.wlan.disconnect()
