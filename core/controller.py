@@ -13,9 +13,12 @@ from actuators.rgb_led import RGBLed
 from actuators.buzzer import Buzzer
 from actuators.relay import Relay
 
+from core.wifi_manager import WiFiManager
+
 from typing import Optional
 from lib.esplog.core import Logger
 
+from uasyncio import asyncio # type: ignore
 import asyncio
 
 class FarmController:

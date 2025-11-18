@@ -3,6 +3,7 @@ Buzzer 蜂鳴器模組
 '''
 from machine import Pin, PWM # type: ignore
 from typing import Optional
+from uasyncio import asyncio # type: ignore
 import asyncio
 
 class Buzzer:
