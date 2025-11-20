@@ -1,7 +1,6 @@
 '''
 WiFi 管理模組，負責連接與管理 WiFi 連線。
 '''
-from uasyncio import asyncio # type: ignore
 import network  # type: ignore
 import time
 from typing import Optional

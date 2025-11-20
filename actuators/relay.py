@@ -3,7 +3,6 @@ relay 繼電器控制模組
 用作控制水泵
 '''
 from machine import Pin # type: ignore
-from uasyncio import asyncio # type: ignore
 import asyncio
 
 class Relay:

@@ -3,7 +3,6 @@ LED RGB 觸發器模組
 '''
 from machine import Pin, PWM # type: ignore
 from typing import Tuple
-from uasyncio import asyncio # type: ignore
 import asyncio
 
 class RGBLed:

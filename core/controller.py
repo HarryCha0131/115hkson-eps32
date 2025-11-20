@@ -18,7 +18,6 @@ from core.wifi_manager import WiFiManager
 from typing import Optional
 from lib.esplog.core import Logger
 
-from uasyncio import asyncio # type: ignore
 import asyncio
 
 class FarmController:
