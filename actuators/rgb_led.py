@@ -80,7 +80,7 @@ class RGBLed:
 
 if __name__ == "__main__":
     async def main():
-        rgb_led = RGBLed(pins=(25, 26, 27), common_anode=False)  # 假設RGB LED連接到GPIO25(R), GPIO26(G), GPIO27(B)
+        rgb_led = RGBLed(pins=(33, 25, 26), common_anode=False)  # 假設RGB LED連接到GPIO33(R), GPIO25(G), GPIO26(B)
         print("設定為紅色")
         rgb_led.red()
         await asyncio.sleep(2)

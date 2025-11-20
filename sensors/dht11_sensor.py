@@ -38,7 +38,7 @@ class DHT11Sensor:
         print("DHT11 感測器資源已釋放")
         
 if __name__ == "__main__":
-    dht11 = DHT11Sensor(pin_number=15)  # 假設DHT11連接在GPIO14
+    dht11 = DHT11Sensor(pin_number=13)  # 假設DHT11連接在GPIO13
     data = dht11.read()
     print("溫度:", data['temp'], "°C")
     print("濕度:", data['humi'], "%")

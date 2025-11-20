@@ -65,7 +65,7 @@ class Buzzer:
 
 if __name__ == "__main__":
     async def main():
-        buzzer = Buzzer(pin_number=14)  # 假設蜂鳴器連接到GPIO15
+        buzzer = Buzzer(pin_number=23)  # 假設蜂鳴器連接到GPIO23
         print("發出單次蜂鳴聲")
         await buzzer.beep(duration=0.5)
         await asyncio.sleep(1)

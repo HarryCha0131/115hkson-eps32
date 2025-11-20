@@ -86,3 +86,76 @@ class WiFiManager:
         finally:
             self.logger.info("WiFi 連接保持任務結束")
             self.wlan.disconnect()
+
+
+if __name__ == "__main__":
+    """
+    簡單測試 WiFiManager 的用法：
+    - 啟動時嘗試連線一次
+    - 成功後啟動 keep_connected 背景任務
+    - 主程式每 3 秒印一次心跳與連線狀態
+    - Ctrl+C 中斷時優雅結束
+    """
+
+    # ⚠️ 記得把這兩個換成你實際的 WiFi 資訊
+    TEST_WIFI_SSID = "Your_WiFi_SSID"
+    TEST_WIFI_PASSWORD = "Your_WiFi_Password"
+
+    async def main():
+        # 建立 Logger
+        logger = Logger(
+            level="DEBUG",
+            log_to_console=True,
+            log_to_file=True,
+            file_name="wifi_test.log",
+            max_file_size=1024,
+            use_colors=True,
+            log_format="text"
+        )
+
+        logger.info("=== WiFiManager 測試程式啟動 ===")
+
+        wifi = WiFiManager(
+            ssid=TEST_WIFI_SSID,
+            password=TEST_WIFI_PASSWORD,
+            logger=logger
+        )
+
+        # 1️⃣ 先嘗試連線一次
+        logger.info("開始嘗試連線 WiFi ...")
+        ok = await wifi.connect(timeout=15)
+        if not ok:
+            logger.error("首次連線失敗，結束測試")
+            return
+
+        ip = wifi.wlan.ifconfig()[0]
+        logger.info(f"首次連線成功，IP: {ip}")
+
+        # 2️⃣ 開啟背景 keep_connected 任務
+        logger.info("啟動 keep_connected 背景任務")
+        keep_task = asyncio.create_task(
+            wifi.keep_connected(check_interval=5, timeout=10)
+        )
+
+        # 3️⃣ 模擬主程式邏輯：每 3 秒印一次心跳
+        try:
+            i = 0
+            while True:
+                i += 1
+                logger.info(f"[主程式] 心跳 {i}，WiFi 狀態: {wifi.is_connected()}")
+                await asyncio.sleep(3)
+        except KeyboardInterrupt:
+            logger.info("收到中斷信號，準備結束測試")
+        finally:
+            logger.info("取消 keep_connected 背景任務")
+            keep_task.cancel()
+            # 讓 CancelledError 有機會被處理
+            await asyncio.sleep(0)
+            logger.info("WiFiManager 測試程式結束")
+
+    try:
+        asyncio.run(main())
+    except AttributeError:
+        # 舊版 uasyncio 沒有 run() 的相容處理
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(main())

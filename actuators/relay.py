@@ -49,7 +49,7 @@ class Relay:
     
 if __name__ == "__main__":
     async def main():
-        relay = Relay(pin_number=17, active_low=True)  # 假設繼電器連接到GPIO27
+        relay = Relay(pin_number=18, active_low=True)  # 假設繼電器連接到GPIO18
         print("啟動繼電器3秒...")
         relay.on()
         await asyncio.sleep(3)
