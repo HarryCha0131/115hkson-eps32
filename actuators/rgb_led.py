@@ -72,9 +72,11 @@ class RGBLed:
     
     def __del__(self):
         '''釋放資源'''
-        self.red.deinit() # type: ignore
-        self.green.deinit() # type: ignore
-        self.blue.deinit() # type: ignore
+        try:
+            for channel in (self.r, self.g, self.b):
+                channel.deinit()
+        except Exception:
+            pass
         print("RGB LED 資源已釋放")
 
 if __name__ == "__main__":

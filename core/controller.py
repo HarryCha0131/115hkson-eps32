@@ -19,7 +19,8 @@ from typing import Optional, List
 from lib.esplog.core import Logger
 
 import asyncio
-import requests, json
+# from lib import urequests as requests
+import requests
 
 class FarmHistoryData:
     '''
@@ -170,7 +171,7 @@ class FarmController:
         # turbidity 讀取濁度百分比
         turb_percent = self._turbidity_read()
         # TDS 讀取 TDS 值
-        tds_value = self._tds_read(temp) if temp is not None else 25.0
+        tds_value = self._tds_read(temp) if temp is not None else self._tds_read(25.0)
         # 水位感測器讀取原始值與狀態
         water_raw, water_low = self._water_sensor_read()
 
@@ -286,14 +287,15 @@ class FarmController:
             data_container = FarmHistoryData()
             while True:
                 data: dict = await self._one_cycle()
-                if times % DATA_UPLOAD_INTERVALS:
-                    times += 1
-                    self.logger.info("完成一次監測與控制週期") 
-                    data_container.write_data(data)
-                else:
+                data_container.write_data(data)
+                times += 1
+
+                if times >= DATA_UPLOAD_INTERVALS:
                     self.logger.info("開始上傳數據...")
                     times = 0
                     await self.upload_data(data_container.summarize_and_clear())
+                else:
+                    self.logger.info("完成一次監測與控制週期")
 
                 await asyncio.sleep(LOOP_INTERVAL)
         except KeyboardInterrupt:

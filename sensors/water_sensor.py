@@ -44,7 +44,7 @@ class WaterLevelSensor:
             bool: 有水接觸返回True，否則返回False
         """
         try:
-            return self.read_raw() > self._threshold
+            return self.read_raw() < self._threshold
         except Exception as e:
             print("水感測器濕度判斷失敗:", e)
             return None
