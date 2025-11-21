@@ -108,9 +108,9 @@ if __name__ == "__main__":
     """
 
     # ⚠️ 記得把這兩個換成你實際的 WiFi 資訊
-    TEST_WIFI_SSID = "Your_WiFi_SSID"
-    TEST_WIFI_PASSWORD = "Your_WiFi_Password"
-
+    from config import WIFI_SSID as TEST_WIFI_SSID
+    from config import WIFI_PASSWORD as TEST_WIFI_PASSWORD
+    
     async def main():
         # 建立 Logger
         logger = Logger(
