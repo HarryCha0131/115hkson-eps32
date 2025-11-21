@@ -6,10 +6,9 @@
 
 -   主機端 Python 3.12；板子跑 MicroPython。
 -   安裝依賴（主機側工具與模擬腳本）：`uv sync --dev`（或 `pip install -e .[dev]`）。
--   把檔案複製到 ESP32（例如 `mpremote cp ...`），確保 `config.py` 填好 Wi‑Fi 與 Webhook。
--   在板子上跑主程式：`mpremote run main.py`。
--   想測試 API 而不接硬體：`python fake_upload.py` 會把假資料送到 `config.py` 的 `WEBHOOK_URL`。
--   想看 asyncio 取消行為：`python test.py`。
+-   把檔案複製到 ESP32（用 Thonny 或 `mpremote cp ...`），確保 `config.py` 填好 Wi‑Fi 與 Webhook。
+-   在板子上跑主程式：Thonny 直接執行或`mpremote run main.py`。
+-   想測試 API 而不接硬體：`python fake_upload.py` 會把假資料送到 `config.py` 的 `WEBHOOK_URL`（亦或者自行更改需要的 URL 即可）。
 
 ## 專案地圖（每個資料夾做什麼）
 
@@ -28,7 +27,6 @@
     -   `relay.py`：控制水泵繼電器（active low）。
 -   `lib/`：設備端工具集合，包含輕量 logger（此模組來自他人 GitHub，請補上原作者與連結）、精簡版 HTTP 需求，以及可能會用到的 Wi‑Fi 輔助工具。
 -   `fake_upload.py`：造假資料丟 Webhook，方便前後端對接測試。
--   `test.py`：示範 asyncio 任務取消。
 
 ## 控制迴圈怎麼跑
 
@@ -40,7 +38,7 @@
 
 ## 安全與設定提醒
 
--   `config.py` 的 Wi‑Fi 密碼與 Webhook URL 請改成你自己的，別推到公開倉庫。可新增 `config.example.py` 並在 `.gitignore` 排除實際檔案。
+-   `config.py` 的 Wi‑Fi 密碼與 Webhook URL 請改成你自己的，別推到公開倉庫。
 -   閾值要依實測微調；`LOOP_INTERVAL` 與 `DATA_UPLOAD_INTERVALS` 可調整上傳頻率。
 
 ## 開發與除錯小撇步
