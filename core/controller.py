@@ -7,7 +7,7 @@ from config import *
 from sensors.dht11_sensor import DHT11Sensor
 from sensors.turbidity_sensor import TurbiditySensor
 from sensors.tds_sensor import TDSSensor
-from sensors.water_level_sensor import WaterLevelSensor
+from sensors.water_sensor import WaterLevelSensor
 
 from actuators.rgb_led import RGBLed
 from actuators.buzzer import Buzzer
@@ -15,10 +15,68 @@ from actuators.relay import Relay
 
 from core.wifi_manager import WiFiManager
 
-from typing import Optional
+from typing import Optional, List
 from lib.esplog.core import Logger
 
 import asyncio
+import requests, json
+
+class FarmHistoryData:
+    '''
+    農業數據結構
+    '''
+    def __init__(self, temperature: Optional[List[Optional[float]]] = None, 
+                    humidity: Optional[List[Optional[float]]] = None, 
+                    turbidity_percent: Optional[List[Optional[float]]] = None, 
+                    tds_value: Optional[List[Optional[float]]] = None, 
+                    water_level_raw: Optional[List[Optional[float]]] = None, 
+                    water_level_low: Optional[List[Optional[bool]]] = None):
+        self.temperature = temperature if temperature is not None else []
+        self.humidity = humidity if humidity is not None else []
+        self.turbidity_percent = turbidity_percent if turbidity_percent is not None else []
+        self.tds_value = tds_value if tds_value is not None else []
+        self.water_level_raw = water_level_raw if water_level_raw is not None else []
+        self.water_level_low = water_level_low if water_level_low is not None else []
+    
+    def write_data(self, data: dict):
+        '''寫入一筆數據'''
+        self.temperature.append(data.get("temperature"))
+        self.humidity.append(data.get("humidity"))
+        self.turbidity_percent.append(data.get("turbidity_percent"))
+        self.tds_value.append(data.get("tds_value"))
+        self.water_level_raw.append(data.get("water_level_raw"))
+        self.water_level_low.append(data.get("water_level_low"))
+    
+    def _clear(self):
+        '''清空歷史數據'''
+        self.temperature.clear()
+        self.humidity.clear()
+        self.turbidity_percent.clear()
+        self.tds_value.clear()
+        self.water_level_raw.clear()
+        self.water_level_low.clear()
+    
+    def summarize_and_clear(self) -> dict:
+        '''彙總數據並返回平均值，且清空歷史數據'''
+        def average(lst: List[Optional[float]]) -> Optional[float]:
+            filtered = [x for x in lst if x is not None]
+            return sum(filtered) / len(filtered) if filtered else None
+        def true_actual(lst: List[Optional[bool]]) -> bool:
+            return any(x for x in lst if x)
+        
+        result = {
+            "avg_temperature": average(self.temperature),
+            "avg_humidity": average(self.humidity),
+            "avg_turbidity_percent": average(self.turbidity_percent),
+            "avg_tds_value": average(self.tds_value),
+            "avg_water_level_raw": average(self.water_level_raw),
+            "water_level_low": true_actual(self.water_level_low),
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        }
+        # 清空歷史數據
+        self._clear()
+        
+        return result
 
 class FarmController:
     def __init__(self, pins, logger: Optional[Logger] = None):
@@ -157,7 +215,15 @@ class FarmController:
             self.relay_pump.off()  # 關閉水泵
             self.logger.info("系統狀態正常，所有指標在安全範圍內，等待下一次監測")
 
-        await asyncio.sleep(LOOP_INTERVAL)
+        data = {
+            "temperature": temp,
+            "humidity": humid,
+            "turbidity_percent": turb_percent,
+            "tds_value": tds_value,
+            "water_level_raw": water_raw,
+            "water_level_low": water_low
+        }
+        return data
         
     async def shutdown(self):
         '''關閉控制器並釋放資源'''
@@ -196,14 +262,40 @@ class FarmController:
                 self.logger.info("WiFi 連接保持任務已取消")
         self.logger.info("FarmController 已關閉")
         
+    async def upload_data(self, data: dict, webhook_url: str = MAKE_WEBHOOK_URL):
+        '''上傳數據到伺服器'''
+        # 這裡可以實作上傳邏輯，例如使用 HTTP POST 請求將數據傳送到遠端伺服器
+        self.logger.info(f"上傳數據...")
+        try:
+            response = requests.post(webhook_url, json=data)
+            if response.status_code == 200:
+                self.logger.info("數據上傳成功")
+            else:
+                self.logger.warning(f"數據上傳失敗，狀態碼: {response.status_code}")
+        except Exception as e:
+            self.logger.error(f"數據上傳時發生錯誤: {e}")
+    
     async def run(self):
         '''持續運行控制器 + 網路初始化'''
         self.logger.info("FarmController 開始運行")
-        await self.init_network()
-        self._wifi_task = asyncio.create_task(self.wifi.keep_connected())  # 背景持續嘗試連線 WiFi
+        if self._wifi_task is None:
+            await self.init_network()
+            self._wifi_task = asyncio.create_task(self.wifi.keep_connected())  # 背景持續嘗試連線 WiFi
         try:
+            times = 0
+            data_container = FarmHistoryData()
             while True:
-                await self._one_cycle()
+                data: dict = await self._one_cycle()
+                if times % DATA_UPLOAD_INTERVALS:
+                    times += 1
+                    self.logger.info("完成一次監測與控制週期") 
+                    data_container.write_data(data)
+                else:
+                    self.logger.info("開始上傳數據...")
+                    times = 0
+                    await self.upload_data(data_container.summarize_and_clear())
+
+                await asyncio.sleep(LOOP_INTERVAL)
         except KeyboardInterrupt:
             self.logger.info("接收到中斷信號，停止運行FarmController")
         finally:

@@ -2,9 +2,11 @@
 WiFi 管理模組，負責連接與管理 WiFi 連線。
 '''
 import network  # type: ignore
+import ntptime  # type: ignore
 import time
 from typing import Optional
 from lib.esplog.core import Logger
+import asyncio
 
 class WiFiManager:
     def __init__(self, ssid: str, password: str, logger: Optional[Logger] = None):
@@ -31,6 +33,14 @@ class WiFiManager:
             )
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
+    
+    def correct_ntp_time(self):
+        """校正系統時間（需要已連接到網路）"""
+        try:
+            ntptime.settime()
+            self.logger.info("NTP 時間校正成功")
+        except Exception as e:
+            self.logger.error(f"NTP 時間校正失敗: {e}")
     
     def is_connected(self) -> bool:
         """檢查是否已連接到 WiFi
@@ -64,6 +74,7 @@ class WiFiManager:
             await asyncio.sleep(1)
         
         self.logger.info(f"WiFi 連接成功，IP 地址: {self.wlan.ifconfig()[0]}")
+        self.correct_ntp_time()
         return True
 
     async def keep_connected(self, check_interval: int = 10, timeout: int = 10):
@@ -120,7 +131,7 @@ if __name__ == "__main__":
             logger=logger
         )
 
-        # 1️⃣ 先嘗試連線一次
+        # 先嘗試連線一次
         logger.info("開始嘗試連線 WiFi ...")
         ok = await wifi.connect(timeout=15)
         if not ok:
@@ -130,13 +141,13 @@ if __name__ == "__main__":
         ip = wifi.wlan.ifconfig()[0]
         logger.info(f"首次連線成功，IP: {ip}")
 
-        # 2️⃣ 開啟背景 keep_connected 任務
+        # 開啟背景 keep_connected 任務
         logger.info("啟動 keep_connected 背景任務")
         keep_task = asyncio.create_task(
             wifi.keep_connected(check_interval=5, timeout=10)
         )
 
-        # 3️⃣ 模擬主程式邏輯：每 3 秒印一次心跳
+        # 模擬主程式邏輯：每 3 秒印一次心跳
         try:
             i = 0
             while True:
